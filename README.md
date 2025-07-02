@@ -1,6 +1,16 @@
 # Personal Endorsement Site
 
-A comprehensive platform for managing brand partnerships, affiliate marketing, and UMKM collaborations.
+A professional endorsement and brand partnership website with a powerful CMS system.
+
+## 🚀 Live Site
+
+Your site is deployed at: **[https://your-site.vercel.app](https://your-site.vercel.app)**
+
+## 🔧 Admin Access
+
+- **URL**: [https://your-site.vercel.app/admin](https://your-site.vercel.app/admin)
+- **Username**: `sinta`
+- **Password**: `Ketemudibandung1`
 
 ## Features
 
@@ -15,6 +25,7 @@ A comprehensive platform for managing brand partnerships, affiliate marketing, a
 - **Granular Permissions**: 9 different permission levels
 - **Secure Authentication**: Session management and security controls
 - **Activity Tracking**: User login and action logging
+- **WhatsApp Integration**: Automated messaging templates
 
 ### 📊 **Analytics & Management**
 - **Dashboard Analytics**: Page views, clicks, conversions
@@ -65,11 +76,19 @@ npm run dev
 
 ## Deployment
 
-### Static Export (Recommended)
+### Automatic Deployment
+- Connected to GitHub for automatic deployments
+- Every push to `main` branch triggers a new deployment
+- Build status visible in Vercel dashboard
+
+### Manual Deployment
 \`\`\`bash
-npm run export
+# Build locally
+npm run build
+
+# Deploy to Vercel
+vercel --prod
 \`\`\`
-This creates a `out/` folder that can be deployed to any static hosting service.
 
 ### Hosting Options
 
@@ -181,10 +200,10 @@ The system is structured to easily integrate with:
 
 ## Support
 
-For technical support or customization requests:
-- Email: admin@your-domain.com
-- Documentation: Available in `/docs`
-- Issues: GitHub Issues
+For technical support or questions:
+- **Email**: support@your-domain.com
+- **Documentation**: Available in admin panel
+- **Status Page**: [https://status.vercel.com](https://status.vercel.com)
 
 ## License
 
@@ -192,7 +211,6 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Built with ❤️ using Next.js, TypeScript, and Tailwind CSS**
-\`\`\`
+**Your professional endorsement site is now live and ready for business! 🎉**
 
-Let's also create a loading page component for better UX:
+**Built with ❤️ using Next.js, TypeScript, and Tailwind CSS**

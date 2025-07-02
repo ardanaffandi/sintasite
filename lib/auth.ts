@@ -166,3 +166,32 @@ export function logout(): void {
     console.error("❌ Error during logout:", error)
   }
 }
+
+// Production-ready session management
+export function refreshSession(): boolean {
+  try {
+    const user = getCurrentUser()
+    if (!user) return false
+
+    // Update last activity
+    const updatedUser = { ...user, lastLogin: new Date().toISOString() }
+    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+
+    return true
+  } catch (error) {
+    console.error("❌ Error refreshing session:", error)
+    return false
+  }
+}
+
+// Auto-refresh session every 5 minutes
+if (typeof window !== "undefined") {
+  setInterval(
+    () => {
+      if (isAuthenticated()) {
+        refreshSession()
+      }
+    },
+    5 * 60 * 1000,
+  )
+}
