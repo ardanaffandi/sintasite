@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { put } from "@vercel/blob"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,23 +22,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File too large" }, { status: 400 })
     }
 
-    // Convert to base64 for storage
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const base64 = buffer.toString("base64")
-    const dataUrl = `data:${file.type};base64,${base64}`
-
     // Generate unique filename
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2)
     const extension = file.name.split(".").pop() || "jpg"
-    const filename = `${timestamp}-${random}.${extension}`
+    const filename = `uploads/${timestamp}-${random}.${extension}`
 
-    return NextResponse.json({
-      success: true,
-      url: dataUrl,
-      filename: filename,
-    })
+    try {
+      // Upload to Vercel Blob
+      const blob = await put(filename, file, {
+        access: "public",
+      })
+
+      return NextResponse.json({
+        success: true,
+        url: blob.url,
+        filename: filename,
+      })
+    } catch (blobError) {
+      console.log("Blob storage not available, using base64 fallback")
+
+      // Fallback to base64 if Vercel Blob is not configured
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      const base64 = buffer.toString("base64")
+      const dataUrl = `data:${file.type};base64,${base64}`
+
+      return NextResponse.json({
+        success: true,
+        url: dataUrl,
+        filename: filename,
+      })
+    }
   } catch (error) {
     console.error("Upload error:", error)
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })

@@ -1,4 +1,3 @@
-// File handling utilities for the CMS
 export const handleFileUpload = async (file: File): Promise<string> => {
   const formData = new FormData()
   formData.append("file", file)
@@ -90,15 +89,15 @@ export class FileManager {
         return { success: false, error: "Invalid file type or size" }
       }
 
-      const dataUrl = await handleFileUpload(file)
+      const url = await handleFileUpload(file)
       const fileId = this.generateFileId(file)
 
-      this.uploadedFiles.set(fileId, dataUrl)
+      this.uploadedFiles.set(fileId, url)
       this.saveUploadedFiles()
 
       return {
         success: true,
-        url: dataUrl,
+        url: url,
       }
     } catch (error) {
       console.error("Error uploading file:", error)
@@ -143,7 +142,6 @@ export class FileManager {
 
 export const fileManager = FileManager.getInstance()
 
-// Generate placeholder images with proper graphics
 export const generatePlaceholderImage = (width: number, height: number, text?: string): string => {
   if (typeof window === "undefined") return `/placeholder.svg?height=${height}&width=${width}`
 
@@ -154,7 +152,6 @@ export const generatePlaceholderImage = (width: number, height: number, text?: s
 
   if (!ctx) return `/placeholder.svg?height=${height}&width=${width}`
 
-  // Create gradient background
   const gradient = ctx.createLinearGradient(0, 0, width, height)
   gradient.addColorStop(0, "#667eea")
   gradient.addColorStop(1, "#764ba2")
@@ -162,7 +159,6 @@ export const generatePlaceholderImage = (width: number, height: number, text?: s
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
 
-  // Add text
   ctx.fillStyle = "white"
   ctx.font = "bold 16px Arial"
   ctx.textAlign = "center"
@@ -174,7 +170,6 @@ export const generatePlaceholderImage = (width: number, height: number, text?: s
   return canvas.toDataURL()
 }
 
-// Create avatar placeholder
 export const createAvatarPlaceholder = (name: string, size = 200): string => {
   if (typeof window === "undefined") return `/placeholder.svg?height=${size}&width=${size}`
 
@@ -185,7 +180,6 @@ export const createAvatarPlaceholder = (name: string, size = 200): string => {
 
   if (!ctx) return `/placeholder.svg?height=${size}&width=${size}`
 
-  // Create circular gradient
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
   gradient.addColorStop(0, "#3b82f6")
   gradient.addColorStop(1, "#1d4ed8")
@@ -195,7 +189,6 @@ export const createAvatarPlaceholder = (name: string, size = 200): string => {
   ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI)
   ctx.fill()
 
-  // Add initials
   ctx.fillStyle = "white"
   ctx.font = `bold ${size / 4}px Arial`
   ctx.textAlign = "center"
