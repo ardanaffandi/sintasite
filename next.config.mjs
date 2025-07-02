@@ -1,17 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+  images: {
+    domains: ['localhost'],
+    unoptimized: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-    domains: ['placeholder.svg', 'via.placeholder.com'],
-  },
-  experimental: {
-    esmExternals: false,
   },
 }
 

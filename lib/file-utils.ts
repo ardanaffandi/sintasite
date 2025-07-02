@@ -1,66 +1,31 @@
 // File handling utilities for the CMS
-/* ------------------------------------------------------------------ */
-/*  Simple helpers used throughout the CMS (keep them in one place)   */
-/* ------------------------------------------------------------------ */
-
-import { randomUUID } from "crypto"
-import path from "path"
-import { mkdir, stat, writeFile } from "fs/promises"
-import type { File } from "formdata-node"
-
-/**
- * Validate that the file is an acceptable image and below 5 MB.
- */
-export function validateImageFileType(file: File): boolean {
-  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
-  const maxSize = 5 * 1024 * 1024 // 5 MB
-
-  if (!validTypes.includes(file.type)) {
-    alert("Please upload a valid image file (JPEG, PNG, GIF, WebP or SVG).")
-    return false
-  }
-
-  return true
-}
-
-export function validateImageFileSize(file: File): boolean {
-  const maxSize = 5 * 1024 * 1024 // 5 MB
-
-  if (file.size > maxSize) {
-    alert("Image size must be less than 5 MB.")
-    return false
-  }
-
-  return true
-}
-
-export async function handleFileUploadClient(file: File): Promise<string> {
-  if (!validateImageFileType(file) || !validateImageFileSize(file)) {
-    throw new Error("Invalid image file")
-  }
-
-  return new Promise<string>((resolve, reject) => {
+export const handleFileUpload = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => {
-      resolve(reader.result as string)
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      resolve(result)
     }
     reader.onerror = () => reject(new Error("Failed to read file"))
     reader.readAsDataURL(file)
   })
 }
 
-/**
- * Validate an image (type + size).
- * Re-exported for backwards compatibility.
- */
-export const validateImageFile = (file: File): boolean => validateImageFileType(file) && validateImageFileSize(file)
+export const validateImageFile = (file: File): boolean => {
+  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+  const maxSize = 5 * 1024 * 1024 // 5MB
 
-/**
- * Read an accepted image and return a Base-64 data-URL.
- * Re-exported for backwards compatibility.
- */
-export async function handleFileUpload(file: File): Promise<string> {
-  return handleFileUploadClient(file)
+  if (!validTypes.includes(file.type)) {
+    alert("Please upload a valid image file (JPEG, PNG, GIF, or WebP)")
+    return false
+  }
+
+  if (file.size > maxSize) {
+    alert("File size must be less than 5MB")
+    return false
+  }
+
+  return true
 }
 
 export interface FileUploadResult {
@@ -111,19 +76,13 @@ export class FileManager {
 
   async uploadFile(file: File): Promise<FileUploadResult> {
     try {
-      // Validate file
-      const validationType = this.validateFileType(file)
-      const validationSize = this.validateFileSize(file)
-      if (!validationType || !validationSize) {
+      if (!validateImageFile(file)) {
         return { success: false, error: "Invalid file type or size" }
       }
 
-      // Convert to base64 for local storage
-      const base64 = await this.fileToBase64(file)
+      const dataUrl = await handleFileUpload(file)
       const fileId = this.generateFileId(file)
-      const dataUrl = `data:${file.type};base64,${base64}`
 
-      // Store in memory and localStorage
       this.uploadedFiles.set(fileId, dataUrl)
       this.saveUploadedFiles()
 
@@ -138,40 +97,6 @@ export class FileManager {
         error: "Failed to upload file",
       }
     }
-  }
-
-  private validateFileType(file: File): boolean {
-    // Check file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
-
-    if (!allowedTypes.includes(file.type)) {
-      return false
-    }
-
-    return true
-  }
-
-  private validateFileSize(file: File): boolean {
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024
-    if (file.size > maxSize) {
-      return false
-    }
-
-    return true
-  }
-
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        const base64 = result.split(",")[1]
-        resolve(base64)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
   }
 
   private generateFileId(file: File): string {
@@ -210,12 +135,14 @@ export const fileManager = FileManager.getInstance()
 
 // Generate placeholder images with proper graphics
 export const generatePlaceholderImage = (width: number, height: number, text?: string): string => {
+  if (typeof window === "undefined") return `/placeholder.svg?height=${height}&width=${width}`
+
   const canvas = document.createElement("canvas")
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext("2d")
 
-  if (!ctx) return `/placeholder.png?height=${height}&width=${width}`
+  if (!ctx) return `/placeholder.svg?height=${height}&width=${width}`
 
   // Create gradient background
   const gradient = ctx.createLinearGradient(0, 0, width, height)
@@ -239,12 +166,14 @@ export const generatePlaceholderImage = (width: number, height: number, text?: s
 
 // Create avatar placeholder
 export const createAvatarPlaceholder = (name: string, size = 200): string => {
+  if (typeof window === "undefined") return `/placeholder.svg?height=${size}&width=${size}`
+
   const canvas = document.createElement("canvas")
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext("2d")
 
-  if (!ctx) return `/placeholder.png?height=${size}&width=${size}`
+  if (!ctx) return `/placeholder.svg?height=${size}&width=${size}`
 
   // Create circular gradient
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
@@ -271,57 +200,4 @@ export const createAvatarPlaceholder = (name: string, size = 200): string => {
   ctx.fillText(initials, size / 2, size / 2)
 
   return canvas.toDataURL()
-}
-
-/**
- * Validate that an uploaded image is of an allowed type and size.
- *
- * @param mimeType - The image’s MIME type (`image/jpeg`, `image/png`, …)
- * @param sizeBytes - The file size in bytes
- * @param maxSizeMB - Maximum allowed size in megabytes (default = 5 MB)
- * @returns `true` if valid, otherwise `false`
- */
-export function validateImageFileServer(mimeType: string, sizeBytes: number, maxSizeMB = 5): boolean {
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"]
-  const isTypeAllowed = allowedTypes.includes(mimeType)
-  const isSizeAllowed = sizeBytes <= maxSizeMB * 1024 * 1024
-  return isTypeAllowed && isSizeAllowed
-}
-
-/**
- * Store an uploaded file in `public/uploads` (or another folder)
- * and return its public URL + generated filename.
- *
- * @param buffer - The raw file buffer
- * @param mimeType - MIME type, used to pick the correct extension
- * @param folder - Relative folder inside `public` (default = `uploads`)
- */
-export async function handleFileUploadServer(
-  buffer: Buffer,
-  mimeType: string,
-  folder = "uploads",
-): Promise<{ url: string; fileName: string }> {
-  const ext =
-    {
-      "image/jpeg": ".jpg",
-      "image/png": ".png",
-      "image/webp": ".webp",
-      "image/svg+xml": ".svg",
-    }[mimeType] || ""
-
-  const fileName = `${randomUUID()}${ext}`
-  const uploadDir = path.join(process.cwd(), "public", folder)
-
-  // Ensure the upload directory exists
-  try {
-    await stat(uploadDir)
-  } catch {
-    await mkdir(uploadDir, { recursive: true })
-  }
-
-  const filePath = path.join(uploadDir, fileName)
-  await writeFile(filePath, buffer)
-
-  const url = `/${folder}/${fileName}`
-  return { url, fileName }
 }
