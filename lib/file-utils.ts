@@ -1,14 +1,24 @@
 // File handling utilities for the CMS
-export const handleFileUpload = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const result = e.target?.result as string
-      resolve(result)
+export const handleFileUpload = async (file: File): Promise<string> => {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  try {
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("Upload failed")
     }
-    reader.onerror = () => reject(new Error("Failed to read file"))
-    reader.readAsDataURL(file)
-  })
+
+    const result = await response.json()
+    return result.url
+  } catch (error) {
+    console.error("Upload error:", error)
+    throw new Error("Failed to upload file")
+  }
 }
 
 export const validateImageFile = (file: File): boolean => {
