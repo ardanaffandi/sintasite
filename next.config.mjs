@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -10,13 +8,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['placeholder.svg', 'via.placeholder.com'],
   },
-  env: {
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://your-site.vercel.app',
-  },
-  // Enable static generation for all pages
-  generateStaticParams: async () => {
-    return []
+  experimental: {
+    esmExternals: false,
   },
 }
 

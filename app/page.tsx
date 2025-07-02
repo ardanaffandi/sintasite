@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Briefcase, Building2, ShoppingBag, Youtube, Instagram } from "lucide-react"
+import { ShoppingBag, Youtube, Instagram } from "lucide-react"
+import { BriefcaseIcon, BuildingIcon, ShoppingBagIcon } from "@/components/graphics/icon-components"
 
 interface HomeContent {
   name: string
@@ -20,7 +21,7 @@ const defaultContent: HomeContent = {
   name: "Your Name",
   title: "Digital Marketing & Brand Collaboration Specialist",
   bio: "Welcome to my professional endorsement platform. I specialize in authentic brand partnerships and strategic collaborations that drive real results for businesses of all sizes.",
-  profileImage: "/placeholder.svg?height=200&width=200",
+  profileImage: "/placeholder.png?height=200&width=200",
   socialMedia: {
     youtube: "https://youtube.com/@yourhandle",
     tiktok: "https://tiktok.com/@yourhandle",
@@ -96,13 +97,13 @@ export default function HomePage() {
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
       case "briefcase":
-        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "building":
-        return <Building2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <BuildingIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "shopping":
-        return <ShoppingBag className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <ShoppingBagIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
       default:
-        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
     }
   }
 
@@ -113,7 +114,7 @@ export default function HomePage() {
         <header className="text-center mb-8 md:mb-12">
           <div className="relative inline-block mb-4 md:mb-6">
             <img
-              src={content.profileImage || "/placeholder.svg"}
+              src={content.profileImage || "/placeholder.png?height=200&width=200"}
               alt={content.name}
               className="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto shadow-xl border-4 border-white/50"
             />

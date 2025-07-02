@@ -1,151 +1,247 @@
-import { storage } from "./storage"
-import { cmsSync } from "./sync"
+// File handling utilities for the CMS
+/* ------------------------------------------------------------------ */
+/*  Simple helpers used throughout the CMS (keep them in one place)   */
+/* ------------------------------------------------------------------ */
 
-export interface SiteData {
-  hero: {
-    title: string
-    subtitle: string
-    description: string
-  }
-  about: {
-    title: string
-    description: string
-    image: string
-  }
-  contact: {
-    phone: string
-    email: string
-    whatsapp: string
-    social: {
-      instagram: string
-      facebook: string
-      twitter: string
-    }
-  }
-}
-
-export function getSiteData(): SiteData {
-  const defaultData: SiteData = {
-    hero: {
-      title: "Professional Brand Partnerships",
-      subtitle: "Connecting Brands with Authentic Voices",
-      description:
-        "Transform your brand's reach through strategic partnerships and authentic endorsements that drive real results.",
-    },
-    about: {
-      title: "About Our Partnership Program",
-      description:
-        "We specialize in creating meaningful connections between brands and their target audiences through authentic partnerships and strategic collaborations.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    contact: {
-      phone: "+1 (555) 123-4567",
-      email: "hello@brandpartnership.com",
-      whatsapp: "+1234567890",
-      social: {
-        instagram: "https://instagram.com/brandpartnership",
-        facebook: "https://facebook.com/brandpartnership",
-        twitter: "https://twitter.com/brandpartnership",
-      },
-    },
-  }
-
-  const stored = storage.getItem("siteData")
-  return stored || defaultData
-}
-
-export function saveSiteData(data: SiteData): void {
-  storage.setItem("siteData", data)
-  cmsSync.markChanged("siteData")
-  console.log("✅ Site data saved and marked for sync")
-}
-
+/**
+ * Validate that the file is an acceptable image and below 5 MB.
+ */
 export function validateImageFile(file: File): boolean {
-  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
-  const maxSize = 5 * 1024 * 1024 // 5MB
+  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+  const maxSize = 5 * 1024 * 1024 // 5 MB
 
   if (!validTypes.includes(file.type)) {
-    alert("Please upload a valid image file (JPEG, PNG, GIF, or WebP)")
+    alert("Please upload a valid image file (JPEG, PNG, GIF, WebP or SVG).")
     return false
   }
 
   if (file.size > maxSize) {
-    alert("Image file size must be less than 5MB")
+    alert("Image size must be less than 5 MB.")
     return false
   }
 
   return true
 }
 
-export function handleFileUpload(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!validateImageFile(file)) {
-      reject(new Error("Invalid file"))
-      return
-    }
+/**
+ * Convert an image file to a Base-64 data URL so it can be stored in
+ * localStorage (used by the CMS image pickers).
+ */
+export async function handleFileUpload(file: File): Promise<string> {
+  if (!validateImageFile(file)) {
+    throw new Error("Invalid image file")
+  }
 
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
-
-    reader.onload = (e) => {
-      const result = e.target?.result as string
-      resolve(result)
+    reader.onload = () => {
+      resolve(reader.result as string)
     }
-
-    reader.onerror = () => {
-      reject(new Error("Failed to read file"))
-    }
-
+    reader.onerror = () => reject(new Error("Failed to read file"))
     reader.readAsDataURL(file)
   })
 }
+export interface FileUploadResult {
+  success: boolean
+  url?: string
+  error?: string
+}
 
-// Enhanced content management functions
-export function saveContent(key: string, content: any): void {
-  storage.setItem(key, content)
-  cmsSync.markChanged(key)
+export class FileManager {
+  private static instance: FileManager
+  private uploadedFiles: Map<string, string> = new Map()
 
-  // Broadcast change to other tabs
-  if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-    const channel = new BroadcastChannel("content-update")
-    channel.postMessage({ key, content, timestamp: Date.now() })
-    channel.close()
+  private constructor() {
+    this.loadUploadedFiles()
   }
 
-  console.log(`✅ Content saved: ${key}`)
-}
-
-export function getContent(key: string, defaultValue: any = null): any {
-  return storage.getItem(key) || defaultValue
-}
-
-export function deleteContent(key: string): void {
-  storage.removeItem(key)
-  cmsSync.markChanged(key)
-  console.log(`✅ Content deleted: ${key}`)
-}
-
-// Backup and restore functions
-export function createBackup(): string {
-  const data = storage.exportData()
-  const backup = {
-    version: "1.0",
-    timestamp: new Date().toISOString(),
-    data,
-  }
-  return JSON.stringify(backup, null, 2)
-}
-
-export function restoreBackup(backupString: string): boolean {
-  try {
-    const backup = JSON.parse(backupString)
-    if (backup.version && backup.data) {
-      storage.importData(backup.data)
-      console.log("✅ Backup restored successfully")
-      return true
+  static getInstance(): FileManager {
+    if (!FileManager.instance) {
+      FileManager.instance = new FileManager()
     }
-    return false
-  } catch (error) {
-    console.error("❌ Failed to restore backup:", error)
-    return false
+    return FileManager.instance
   }
+
+  private loadUploadedFiles(): void {
+    if (typeof window === "undefined") return
+
+    try {
+      const stored = localStorage.getItem("uploaded-files")
+      if (stored) {
+        const files = JSON.parse(stored)
+        this.uploadedFiles = new Map(Object.entries(files))
+      }
+    } catch (error) {
+      console.error("Error loading uploaded files:", error)
+    }
+  }
+
+  private saveUploadedFiles(): void {
+    if (typeof window === "undefined") return
+
+    try {
+      const filesObject = Object.fromEntries(this.uploadedFiles)
+      localStorage.setItem("uploaded-files", JSON.stringify(filesObject))
+    } catch (error) {
+      console.error("Error saving uploaded files:", error)
+    }
+  }
+
+  async uploadFile(file: File): Promise<FileUploadResult> {
+    try {
+      // Validate file
+      const validation = this.validateFile(file)
+      if (!validation.valid) {
+        return { success: false, error: validation.error }
+      }
+
+      // Convert to base64 for local storage
+      const base64 = await this.fileToBase64(file)
+      const fileId = this.generateFileId(file)
+      const dataUrl = `data:${file.type};base64,${base64}`
+
+      // Store in memory and localStorage
+      this.uploadedFiles.set(fileId, dataUrl)
+      this.saveUploadedFiles()
+
+      return {
+        success: true,
+        url: dataUrl,
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error)
+      return {
+        success: false,
+        error: "Failed to upload file",
+      }
+    }
+  }
+
+  private validateFile(file: File): { valid: boolean; error?: string } {
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      return { valid: false, error: "File size must be less than 5MB" }
+    }
+
+    // Check file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+
+    if (!allowedTypes.includes(file.type)) {
+      return { valid: false, error: "Only image files are allowed" }
+    }
+
+    return { valid: true }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const base64 = result.split(",")[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  private generateFileId(file: File): string {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2)
+    const extension = file.name.split(".").pop() || ""
+    return `${timestamp}-${random}.${extension}`
+  }
+
+  getFileUrl(fileId: string): string | null {
+    return this.uploadedFiles.get(fileId) || null
+  }
+
+  deleteFile(fileId: string): boolean {
+    const deleted = this.uploadedFiles.delete(fileId)
+    if (deleted) {
+      this.saveUploadedFiles()
+    }
+    return deleted
+  }
+
+  getAllFiles(): Array<{ id: string; url: string }> {
+    return Array.from(this.uploadedFiles.entries()).map(([id, url]) => ({
+      id,
+      url,
+    }))
+  }
+
+  clearAllFiles(): void {
+    this.uploadedFiles.clear()
+    this.saveUploadedFiles()
+  }
+}
+
+export const fileManager = FileManager.getInstance()
+
+// Generate placeholder images with proper graphics
+export const generatePlaceholderImage = (width: number, height: number, text?: string): string => {
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext("2d")
+
+  if (!ctx) return `/placeholder.png?height=${height}&width=${width}`
+
+  // Create gradient background
+  const gradient = ctx.createLinearGradient(0, 0, width, height)
+  gradient.addColorStop(0, "#667eea")
+  gradient.addColorStop(1, "#764ba2")
+
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
+
+  // Add text
+  ctx.fillStyle = "white"
+  ctx.font = "bold 16px Arial"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+
+  const displayText = text || `${width} × ${height}`
+  ctx.fillText(displayText, width / 2, height / 2)
+
+  return canvas.toDataURL()
+}
+
+// Create avatar placeholder
+export const createAvatarPlaceholder = (name: string, size = 200): string => {
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")
+
+  if (!ctx) return `/placeholder.png?height=${size}&width=${size}`
+
+  // Create circular gradient
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+  gradient.addColorStop(0, "#3b82f6")
+  gradient.addColorStop(1, "#1d4ed8")
+
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI)
+  ctx.fill()
+
+  // Add initials
+  ctx.fillStyle = "white"
+  ctx.font = `bold ${size / 4}px Arial`
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+  ctx.fillText(initials, size / 2, size / 2)
+
+  return canvas.toDataURL()
 }
