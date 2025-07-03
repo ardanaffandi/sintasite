@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ShoppingBag, Youtube, Instagram } from "lucide-react"
 import { BriefcaseIcon, BuildingIcon, ShoppingBagIcon } from "@/components/graphics/icon-components"
+import { cmsApi } from "@/lib/cms-api"
 
 interface HomeContent {
   name: string
@@ -15,36 +16,30 @@ interface HomeContent {
     tiktok: string
     instagram: string
   }
+  navigationCards: Array<{
+    id: string
+    title: string
+    description: string
+    buttonText: string
+    buttonStyle: "primary" | "secondary"
+    icon: "briefcase" | "building" | "shopping"
+    href: string
+    gradient: string
+    isActive: boolean
+  }>
 }
 
 const defaultContent: HomeContent = {
   name: "Your Name",
   title: "Digital Marketing & Brand Collaboration Specialist",
   bio: "Welcome to my professional endorsement platform. I specialize in authentic brand partnerships and strategic collaborations that drive real results for businesses of all sizes.",
-  profileImage: "/placeholder.png?height=200&width=200",
+  profileImage: "/placeholder.svg?height=200&width=200",
   socialMedia: {
     youtube: "https://youtube.com/@yourhandle",
     tiktok: "https://tiktok.com/@yourhandle",
     instagram: "https://instagram.com/yourhandle",
   },
-}
-
-interface NavigationCard {
-  id: string
-  title: string
-  description: string
-  buttonText: string
-  buttonStyle: "primary" | "secondary"
-  icon: "briefcase" | "building" | "shopping"
-  href: string
-  gradient: string
-  isActive: boolean
-}
-
-export default function HomePage() {
-  const [content, setContent] = useState<HomeContent>(defaultContent)
-
-  const [navigationCards, setNavigationCards] = useState<NavigationCard[]>([
+  navigationCards: [
     {
       id: "umkm",
       title: "UMKM Partnership",
@@ -69,30 +64,43 @@ export default function HomePage() {
       gradient: "from-blue-300 to-indigo-300",
       isActive: true,
     },
-  ])
+  ],
+}
+
+export default function HomePage() {
+  const [content, setContent] = useState<HomeContent>(defaultContent)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const savedContent = localStorage.getItem("homeContent")
-    const savedCards = localStorage.getItem("homeNavigationCards")
-
-    if (savedContent) {
-      const parsed: Partial<HomeContent> = JSON.parse(savedContent)
-      setContent({
-        ...defaultContent,
-        ...parsed,
-        socialMedia: { ...defaultContent.socialMedia, ...(parsed.socialMedia ?? {}) },
-      })
-    } else {
-      localStorage.setItem("homeContent", JSON.stringify(defaultContent))
-    }
-
-    if (savedCards) {
-      setNavigationCards(JSON.parse(savedCards))
-    } else {
-      // Initialize with fresh data
-      localStorage.setItem("homeNavigationCards", JSON.stringify(navigationCards))
-    }
+    loadContent()
   }, [])
+
+  const loadContent = async () => {
+    try {
+      const data = await cmsApi.get("homePageContent")
+
+      // Ensure we have the correct structure
+      const processedContent: HomeContent = {
+        name: data.name || defaultContent.name,
+        title: data.title || defaultContent.title,
+        bio: data.bio || defaultContent.bio,
+        profileImage: data.profileImage || defaultContent.profileImage,
+        socialMedia: {
+          youtube: data.socialMedia?.youtube || defaultContent.socialMedia.youtube,
+          tiktok: data.socialMedia?.tiktok || defaultContent.socialMedia.tiktok,
+          instagram: data.socialMedia?.instagram || defaultContent.socialMedia.instagram,
+        },
+        navigationCards: data.navigationCards || defaultContent.navigationCards,
+      }
+
+      setContent(processedContent)
+    } catch (error) {
+      console.error("Failed to load content:", error)
+      setContent(defaultContent)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
@@ -107,6 +115,14 @@ export default function HomePage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-pink-500"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-4xl mx-auto">
@@ -114,7 +130,7 @@ export default function HomePage() {
         <header className="text-center mb-8 md:mb-12">
           <div className="relative inline-block mb-4 md:mb-6">
             <img
-              src={content.profileImage || "/placeholder.png?height=200&width=200"}
+              src={content.profileImage || "/placeholder.svg?height=200&width=200"}
               alt={content.name}
               className="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto shadow-xl border-4 border-white/50"
             />
@@ -186,7 +202,7 @@ export default function HomePage() {
 
         {/* Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          {navigationCards
+          {content.navigationCards
             .filter((card) => card.isActive)
             .map((card) => (
               <Link key={card.id} href={card.href} className="group">
