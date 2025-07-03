@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ShoppingBag, Youtube, Instagram } from "lucide-react"
-import { BriefcaseIcon, BuildingIcon, ShoppingBagIcon } from "@/components/graphics/icon-components"
-import { cmsApi } from "@/lib/cms-api"
+import { Briefcase, Building2, ShoppingBag, Youtube, Instagram } from "lucide-react"
 
 interface HomeContent {
   name: string
@@ -16,17 +14,6 @@ interface HomeContent {
     tiktok: string
     instagram: string
   }
-  navigationCards: Array<{
-    id: string
-    title: string
-    description: string
-    buttonText: string
-    buttonStyle: "primary" | "secondary"
-    icon: "briefcase" | "building" | "shopping"
-    href: string
-    gradient: string
-    isActive: boolean
-  }>
 }
 
 const defaultContent: HomeContent = {
@@ -39,7 +26,24 @@ const defaultContent: HomeContent = {
     tiktok: "https://tiktok.com/@yourhandle",
     instagram: "https://instagram.com/yourhandle",
   },
-  navigationCards: [
+}
+
+interface NavigationCard {
+  id: string
+  title: string
+  description: string
+  buttonText: string
+  buttonStyle: "primary" | "secondary"
+  icon: "briefcase" | "building" | "shopping"
+  href: string
+  gradient: string
+  isActive: boolean
+}
+
+export default function HomePage() {
+  const [content, setContent] = useState<HomeContent>(defaultContent)
+
+  const [navigationCards, setNavigationCards] = useState<NavigationCard[]>([
     {
       id: "umkm",
       title: "UMKM Partnership",
@@ -64,63 +68,42 @@ const defaultContent: HomeContent = {
       gradient: "from-blue-300 to-indigo-300",
       isActive: true,
     },
-  ],
-}
-
-export default function HomePage() {
-  const [content, setContent] = useState<HomeContent>(defaultContent)
-  const [isLoading, setIsLoading] = useState(true)
+  ])
 
   useEffect(() => {
-    loadContent()
-  }, [])
+    const savedContent = localStorage.getItem("homeContent")
+    const savedCards = localStorage.getItem("homeNavigationCards")
 
-  const loadContent = async () => {
-    try {
-      const data = await cmsApi.get("homePageContent")
-
-      // Ensure we have the correct structure
-      const processedContent: HomeContent = {
-        name: data.name || defaultContent.name,
-        title: data.title || defaultContent.title,
-        bio: data.bio || defaultContent.bio,
-        profileImage: data.profileImage || defaultContent.profileImage,
-        socialMedia: {
-          youtube: data.socialMedia?.youtube || defaultContent.socialMedia.youtube,
-          tiktok: data.socialMedia?.tiktok || defaultContent.socialMedia.tiktok,
-          instagram: data.socialMedia?.instagram || defaultContent.socialMedia.instagram,
-        },
-        navigationCards: data.navigationCards || defaultContent.navigationCards,
-      }
-
-      setContent(processedContent)
-    } catch (error) {
-      console.error("Failed to load content:", error)
-      setContent(defaultContent)
-    } finally {
-      setIsLoading(false)
+    if (savedContent) {
+      const parsed: Partial<HomeContent> = JSON.parse(savedContent)
+      setContent({
+        ...defaultContent,
+        ...parsed,
+        socialMedia: { ...defaultContent.socialMedia, ...(parsed.socialMedia ?? {}) },
+      })
+    } else {
+      localStorage.setItem("homeContent", JSON.stringify(defaultContent))
     }
-  }
+
+    if (savedCards) {
+      setNavigationCards(JSON.parse(savedCards))
+    } else {
+      // Initialize with fresh data
+      localStorage.setItem("homeNavigationCards", JSON.stringify(navigationCards))
+    }
+  }, [])
 
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
       case "briefcase":
-        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "building":
-        return <BuildingIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Building2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "shopping":
-        return <ShoppingBagIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <ShoppingBag className="w-5 h-5 md:w-6 md:h-6 text-white" />
       default:
-        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
     }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-pink-500"></div>
-      </div>
-    )
   }
 
   return (
@@ -130,7 +113,7 @@ export default function HomePage() {
         <header className="text-center mb-8 md:mb-12">
           <div className="relative inline-block mb-4 md:mb-6">
             <img
-              src={content.profileImage || "/placeholder.svg?height=200&width=200"}
+              src={content.profileImage || "/placeholder.svg"}
               alt={content.name}
               className="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto shadow-xl border-4 border-white/50"
             />
@@ -202,7 +185,7 @@ export default function HomePage() {
 
         {/* Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          {content.navigationCards
+          {navigationCards
             .filter((card) => card.isActive)
             .map((card) => (
               <Link key={card.id} href={card.href} className="group">

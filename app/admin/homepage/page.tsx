@@ -5,8 +5,21 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Save, Upload, Eye, Home, Edit3, Plus, Trash2, GripVertical, Instagram, Youtube } from "lucide-react"
-import { BriefcaseIcon, BuildingIcon, ShoppingBagIcon } from "@/components/graphics/icon-components"
+import {
+  Save,
+  Upload,
+  Eye,
+  Home,
+  Briefcase,
+  Building2,
+  ShoppingBag,
+  Edit3,
+  Plus,
+  Trash2,
+  GripVertical,
+  Instagram,
+  Youtube,
+} from "lucide-react"
 
 interface HomeContent {
   name: string
@@ -42,7 +55,7 @@ export default function HomepageCMS() {
     name: "Alex Johnson",
     title: "Digital Marketing & Brand Collaboration Specialist",
     bio: "Passionate about connecting brands with their perfect audience. With over 5 years of experience in digital marketing and brand partnerships, I help businesses grow through authentic collaborations and strategic endorsements.",
-    profileImage: "/placeholder.png?height=200&width=200",
+    profileImage: "/placeholder.svg?height=200&width=200",
     socialMedia: {
       youtube: "https://youtube.com/@yourhandle",
       tiktok: "https://tiktok.com/@yourhandle",
@@ -158,13 +171,13 @@ export default function HomepageCMS() {
   const getIconComponent = (iconName: string) => {
     switch (iconName) {
       case "briefcase":
-        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "building":
-        return <BuildingIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Building2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
       case "shopping":
-        return <ShoppingBagIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <ShoppingBag className="w-5 h-5 md:w-6 md:h-6 text-white" />
       default:
-        return <BriefcaseIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        return <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-white" />
     }
   }
 
@@ -270,7 +283,7 @@ export default function HomepageCMS() {
                     <div className="flex items-center space-x-6">
                       <div className="relative">
                         <img
-                          src={content.profileImage || "/placeholder.png"}
+                          src={content.profileImage || "/placeholder.svg"}
                           alt="Profile"
                           className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
                         />
